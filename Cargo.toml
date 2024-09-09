@@ -1,0 +1,11 @@
+[package]
+name = "moredots"
+version = "0.1.2"
+edition = "2021"
+
+[dependencies]
+enigo = "0.0.14"
+rdev = "0.4.6"
+lazy_static = "1.5.0"
+chrono = "0.4.38"
+winapi = { version = "0.3", features = ["winuser"] }
