@@ -28,7 +28,7 @@ impl Circle {
         };
         new_circle
     }
-    pub fn get_x_coord(&self) -> ix32 {
+    pub fn get_x_coord(&self) -> i32 {
         let x = (self.center_x + self.radius * self.angle.get().cos()) as i32;
         x
     }

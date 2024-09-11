@@ -1,52 +1,59 @@
+use crate::{time_handler};
+use chrono::NaiveTime;
 use std::fs;
 use std::fs::File;
-use std::io::{BufWriter, Write};
 use std::io::Result;
-use crate::time_util;
+use std::io::{BufWriter, Write};
 
+struct UserSetting {
+    stop_day_time: NaiveTime,
+    start_lunch_time: NaiveTime,
+    stop_lucnh_time: NaiveTime,
+    print_timestamps: bool
+}
 
-pub fn get_setting() -> [String; 3] {
-    let saved_setting = read_from_file();
-    if saved_setting.is_ok() {
-        convert_to_array(saved_setting.unwrap())
-    } else {
-        convert_to_array(get_settings_from_user())
+pub fn load_saved_settings() -> Result<[String; 3]> {
+    match read_from_file() {
+        Ok(setting) => Ok(map_to_array(setting)),
+        Err(_) => {
+            let new_setting = create_settings_from_input()?;
+            write_to_file(new_setting.as_bytes())?;
+            Ok(map_to_array(new_setting))
+        }
     }
 }
 
-fn get_settings_from_user() -> String {
-    let mut stamps = String::new();
-    if time_util::change_time("STOP", "16:45") {
-        stamps += &*time_util::add_time();
-        stamps += ",";
-    }
-    if time_util::change_time("LUNCH", "11:00-13:00") {
-        stamps += &*time_util::add_time();
-        stamps += ",";
-        stamps += &*time_util::add_time();
-    }
-    create_setting(stamps.as_bytes());
-    stamps
-}
-
-fn create_setting(content: &[u8]) {
-    //TODO: Kan jag specifiera bättre var min config fil ska sparas?
-    if content.is_empty() {
-        write_to_file(b"16:45,11:00,13:00").unwrap();
-    } else {
-        write_to_file(content).unwrap();
-    }
-}
-
-fn convert_to_array<'a>(value: String) -> [String; 3] {
+fn map_to_array<'a>(value: String) -> [String; 3] {
     let temp_array: Vec<&str> = value.split(",").collect();
-    let mut values: [String; 3] = [String::from("16:45"), String::from("11:00"), String::from("13:00")];
-    let mut counter = 0;
-    for part in temp_array {
-        values[counter] = part.parse().unwrap();
-        counter += 1;
+    temp_array
+        .into_iter()
+        .map(|part| part.to_string()) //Closure (anonymous function)
+        .collect::<Vec<String>>()
+        .try_into()
+        .unwrap_or_else(|_| [  // Fallback value if conversion fails
+            String::from("18:45"),
+            String::from("11:00"),
+            String::from("12:00")
+        ])
+}
+
+fn create_settings_from_input() -> Result<String> {
+    let mut timestamps = String::new();
+    if time_handler::change_time("STOP", "16:45") {
+        timestamps.push_str(&*time_handler::add_time().unwrap_or_else(|_| String::from("16:45")));
+        timestamps.push(',');
+    } else {
+        timestamps.push_str("16:45");
+        timestamps.push(',');
     }
-    values
+    if time_handler::change_time("LUNCH", "11:00-12:00") {
+        timestamps.push_str(&*time_handler::add_time().unwrap_or_else(|_| String::from("11:00")));
+        timestamps.push(',');
+        timestamps.push_str(&*time_handler::add_time().unwrap_or_else(|_| String::from("12:00")));
+    } else {
+        timestamps.push_str("11:00,12:00");
+    }
+    Ok(timestamps)
 }
 
 
@@ -56,6 +63,7 @@ fn read_from_file() -> Result<String> {
 }
 
 fn write_to_file(content: &[u8]) -> Result<String> {
+    //TODO: Kan jag specifiera bättre var min config fil ska sparas?
     let result = File::create("moredots");
     if result.is_ok() {
         let mut write_buffer = BufWriter::new(result?);

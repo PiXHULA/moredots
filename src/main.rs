@@ -1,14 +1,14 @@
+use crate::time_handler::Timestamp;
+use circle::Circle;
 use enigo::{Enigo, MouseControllable};
+use lazy_static::lazy_static;
 use rdev::{listen, Event, EventType, Key};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread;
 use std::thread::sleep;
 use std::time::Duration;
-use lazy_static::lazy_static;
-use crate::time_util::Timestamp;
-use circle::Circle;
 
-mod time_util;
+mod time_handler;
 mod circle;
 mod settings;
 
