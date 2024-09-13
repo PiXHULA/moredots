@@ -4,8 +4,8 @@ use enigo::{Enigo, MouseControllable};
 use lazy_static::lazy_static;
 use rdev::{listen, Event, EventType, Key};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::io::Write;
-use std::thread::{sleep, spawn};
+use std::io::{self, Write};
+use std::thread::{self, sleep};
 use std::time::Duration;
 
 mod time_handler;
@@ -19,14 +19,35 @@ lazy_static! {
 }
 
 fn event_listener(event: Event) {
-    // Function to listen for key press events
+    static SHIFT_PRESSED: AtomicBool = AtomicBool::new(false);
+    fn print_action(action: bool) {
+        if action {
+            print!("\r### R E S U M E ####")
+        } else {
+            print!("\r### P A U S E ######")
+        }
+        io::stdout().flush().unwrap();
+    }
+
     if let EventType::KeyPress(key) = event.event_type {
         if key == Key::Escape {
             STOP_FLAG.store(true, Ordering::SeqCst);
         }
-        //TODO: Den här ska lyssna på Shiftleft + keyP  varför fungerar det inte att gör och?
-        if key == Key::ShiftLeft && key == Key::KeyP {
-            RUN_FLAG.store(!RUN_FLAG.load(Ordering::SeqCst), Ordering::SeqCst)
+
+        if key == Key::ShiftLeft {
+            SHIFT_PRESSED.store(true, Ordering::SeqCst);
+        }
+
+        if SHIFT_PRESSED.load(Ordering::SeqCst) && key == Key::KeyP {
+            RUN_FLAG.store(!RUN_FLAG.load(Ordering::SeqCst), Ordering::SeqCst);
+            print_action(RUN_FLAG.load(Ordering::SeqCst));
+        }
+    }
+
+    // Reset the ShiftLeft key when it's released
+    if let EventType::KeyRelease(key) = event.event_type {
+        if key == Key::ShiftLeft {
+            SHIFT_PRESSED.store(false, Ordering::SeqCst);
         }
     }
 }
@@ -37,7 +58,7 @@ fn main() {
     let mut worthy_clock = Timestamp::new();
 
     // Spawn a thread to listen for keyboard events
-    spawn(move || {
+    thread::spawn(move || {
         if let Err(e) = listen(event_listener) {
             eprintln!("Error while listening: {:?}", e);
         }
@@ -47,12 +68,12 @@ fn main() {
         //TODO: Vill bara uppdatera tiden varje kvart eller halvtimma
         // men då behövs väl en tidstämpel att jämföra med.
         if worthy_clock.now >= worthy_clock.stop_time {
-            println!("Now is: {}. Stopping", worthy_clock.now.format("%H:%M:%S"));
+            print!("\rNow is: {}. Stopping", worthy_clock.now.format("%H:%M:%S"));
             break;
         }
 
         if STOP_FLAG.load(Ordering::SeqCst) {
-            println!("BYE FOR NOW!");
+            print!("\r### BYE FOR NOW! ###");
             break;
         }
         //TODO: RUN_FLAG borde styras av att man rör musen
