@@ -1,8 +1,8 @@
 use std::fmt;
 use crate::settings;
-use chrono::NaiveTime;
 use std::io::{self, Write};
 use std::num::ParseIntError;
+use chrono::NaiveTime;
 
 #[derive(Debug)]
 pub struct Timestamp {
@@ -46,16 +46,7 @@ impl Timestamp {
                 }
             }
         };
-        //TODO: Add a way to hide the print if wanted
-        new_timestamp.print_stamps();
         new_timestamp
-    }
-
-    pub fn print_stamps(&self) {
-        println!("STOP  : {}", self.stop_time.format("%H:%M"));
-        println!("LUNCH : {}-{}",
-                 self.lunch_start_time.format("%H:%M"),
-                 self.lunch_stop_time.format("%H:%M"));
     }
 
     fn from(string_stamp: &str) -> NaiveTime {
@@ -101,51 +92,18 @@ impl Timestamp {
             source: e,
         });
         Ok(num?.to_string())
-
     }
 
     pub fn now() -> NaiveTime {
         chrono::Local::now().time()
     }
-
-
-    pub fn time_from_input() -> NaiveTime {
-        // Ask the user to input a time
-        print!("Enter a time (HH:MM): ");
-        io::stdout().flush().unwrap();  // Ensure the prompt is shown immediately
-
-        // Get user input
-        let mut input = String::new();
-        io::stdin().read_line(&mut input).expect("Failed to read input");
-
-        // Trim the newline character
-        let input = input.trim();
-
-        // Parse the input into a NaiveTime
-        let parsed_time = NaiveTime::parse_from_str(input, "%H:%M");
-
-        // Check if the input was valid
-        match parsed_time {
-            Ok(time) => {
-                // Add 30 minutes to the parsed time
-                println!("New time: {}", time.format("%H:%M"));
-                parsed_time.unwrap()
-            }
-            _ => {
-                // Handle invalid input
-                eprintln!("{:?}. Please use HH:MM format.", parsed_time);
-                NaiveTime::from_hms_opt(0, 0, 0).unwrap()
-            }
-        }
-    }
 }
 
 pub fn change_time(question: &str, stamp: &str) -> bool {
     print!("CHANGE {} TIME? {} (y/n) ", question, stamp);
-    io::stdout().flush().unwrap();  // Ensure the prompt is shown immediately
 
-    // Get user input
     let mut input = String::new();
+    io::stdout().flush().unwrap();  // Ensure the prompt is shown immediately
     io::stdin().read_line(&mut input).expect("Failed to read input");
 
     input.contains("y")
@@ -153,16 +111,11 @@ pub fn change_time(question: &str, stamp: &str) -> bool {
 
 
 pub fn add_time() -> Result<String, NumberParseError> {
-    // Ask the user to input a time
     print!("Enter a time (HH:MM): ");
-    io::stdout().flush().unwrap();  // Ensure the prompt is shown immediately
 
-    // Get user input
     let mut input = String::new();
+    io::stdout().flush().unwrap();  // Ensure the prompt is shown immediately
     io::stdin().read_line(&mut input).expect("Failed to read input");
 
-    // Trim the newline character
-    let input = input.trim();
-
-    Timestamp::parse_number_to_string(input)
+    Timestamp::parse_number_to_string(input.trim())
 }

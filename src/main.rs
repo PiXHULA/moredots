@@ -4,8 +4,8 @@ use enigo::{Enigo, MouseControllable};
 use lazy_static::lazy_static;
 use rdev::{listen, Event, EventType, Key};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::thread;
-use std::thread::sleep;
+use std::io::Write;
+use std::thread::{sleep, spawn};
 use std::time::Duration;
 
 mod time_handler;
@@ -37,7 +37,7 @@ fn main() {
     let mut worthy_clock = Timestamp::new();
 
     // Spawn a thread to listen for keyboard events
-    thread::spawn(move || {
+    spawn(move || {
         if let Err(e) = listen(event_listener) {
             eprintln!("Error while listening: {:?}", e);
         }
@@ -52,7 +52,7 @@ fn main() {
         }
 
         if STOP_FLAG.load(Ordering::SeqCst) {
-            println!("Escape key pressed. Stopping.");
+            println!("BYE FOR NOW!");
             break;
         }
         //TODO: RUN_FLAG borde styras av att man rör musen

@@ -1,16 +1,10 @@
 use crate::{time_handler};
 use chrono::NaiveTime;
-use std::fs;
+use std::{env, fs};
 use std::fs::File;
 use std::io::Result;
 use std::io::{BufWriter, Write};
-
-struct UserSetting {
-    stop_day_time: NaiveTime,
-    start_lunch_time: NaiveTime,
-    stop_lucnh_time: NaiveTime,
-    print_timestamps: bool
-}
+use std::path::PathBuf;
 
 pub fn load_saved_settings() -> Result<[String; 3]> {
     match read_from_file() {
@@ -18,9 +12,16 @@ pub fn load_saved_settings() -> Result<[String; 3]> {
         Err(_) => {
             let new_setting = create_settings_from_input()?;
             write_to_file(new_setting.as_bytes())?;
-            Ok(map_to_array(new_setting))
+            let settings = map_to_array(new_setting);
+            print_stamps(&settings);
+            Ok(settings)
         }
     }
+}
+
+fn print_stamps(settings: &[String; 3]) {
+    println!("STOP  : {}", settings[0]);
+    println!("LUNCH : {}-{}", settings[1], settings[2]);
 }
 
 fn map_to_array<'a>(value: String) -> [String; 3] {
@@ -56,15 +57,16 @@ fn create_settings_from_input() -> Result<String> {
     Ok(timestamps)
 }
 
-
 fn read_from_file() -> Result<String> {
-    let result = fs::read_to_string("moredots");
+    let path = get_relative_path_to_file()?;
+    let result = fs::read_to_string(path);
     result
 }
 
 fn write_to_file(content: &[u8]) -> Result<String> {
-    //TODO: Kan jag specifiera bättre var min config fil ska sparas?
-    let result = File::create("moredots");
+    let path = get_relative_path_to_file()?;
+    let result = File::create(path);
+
     if result.is_ok() {
         let mut write_buffer = BufWriter::new(result?);
         write_buffer.write_all(content)?;
@@ -72,4 +74,15 @@ fn write_to_file(content: &[u8]) -> Result<String> {
     }
     let read = read_from_file();
     read
+}
+
+fn get_relative_path_to_file() -> Result<PathBuf> {
+    let exe_path = env::current_exe()?;
+    let exe_dir = exe_path
+        .parent()
+        .expect("Failed to get binary directory");
+
+    let mut path = PathBuf::from(exe_dir);
+    path.push("user_settings.txt");
+    Ok(path)
 }
