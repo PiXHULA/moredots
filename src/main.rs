@@ -1,4 +1,3 @@
-use crate::time_handler::Timestamp;
 use circle::Circle;
 use enigo::{Enigo, MouseControllable};
 use lazy_static::lazy_static;
@@ -8,9 +7,10 @@ use std::io::{self, Write};
 use std::thread::{self, sleep};
 use std::time::Duration;
 
-mod time_handler;
+mod time;
 mod circle;
 mod settings;
+mod file;
 
 // Make `stop_flag` static, so it can be accessed in a function pointer
 lazy_static! {
@@ -43,8 +43,6 @@ fn event_listener(event: Event) {
             print_action(RUN_FLAG.load(Ordering::SeqCst));
         }
     }
-
-    // Reset the ShiftLeft key when it's released
     if let EventType::KeyRelease(key) = event.event_type {
         if key == Key::ShiftLeft {
             SHIFT_PRESSED.store(false, Ordering::SeqCst);
@@ -53,41 +51,46 @@ fn event_listener(event: Event) {
 }
 
 fn main() {
-    let mut controller = Enigo::new();
-    let drawing_circle = Circle::new();
-    let mut worthy_clock = Timestamp::new();
+    let settings = settings::load_settings();
+    match settings {
+        Ok(mut set) => {
+            let mut controller = Enigo::new();
+            let drawing_circle = Circle::new();
+            thread::spawn(move || {
+                if let Err(e) = listen(event_listener) {
+                    eprintln!("Error while listening: {:?}", e);
+                }
+            });
+            loop {
+                //TODO: Vill bara uppdatera tiden varje kvart eller halvtimma
+                // men då behövs väl en tidstämpel att jämföra med.
+                if set.now >= set.stop_time {
+                    print!("\rNow is: {}. Stopping", set.now.format("%H:%M:%S"));
+                    break;
+                }
 
-    // Spawn a thread to listen for keyboard events
-    thread::spawn(move || {
-        if let Err(e) = listen(event_listener) {
-            eprintln!("Error while listening: {:?}", e);
-        }
-    });
+                if STOP_FLAG.load(Ordering::SeqCst) {
+                    print!("\r### BYE FOR NOW! ###");
+                    break;
+                }
+                //TODO: RUN_FLAG borde styras av att man rör musen
+                if RUN_FLAG.load(Ordering::SeqCst) {
+                    if set.now < set.lunch_start_time || set.now >= set.lunch_stop_time {
+                        let x_coord = Circle::get_x_coord(&drawing_circle);
+                        let y_coord = Circle::get_y_coord(&drawing_circle);
+                        controller.mouse_move_to(x_coord, y_coord);
+                        // controller.mouse_click(MouseButton::Left);
 
-    loop {
-        //TODO: Vill bara uppdatera tiden varje kvart eller halvtimma
-        // men då behövs väl en tidstämpel att jämföra med.
-        if worthy_clock.now >= worthy_clock.stop_time {
-            print!("\rNow is: {}. Stopping", worthy_clock.now.format("%H:%M:%S"));
-            break;
-        }
-
-        if STOP_FLAG.load(Ordering::SeqCst) {
-            print!("\r### BYE FOR NOW! ###");
-            break;
-        }
-        //TODO: RUN_FLAG borde styras av att man rör musen
-        if RUN_FLAG.load(Ordering::SeqCst) {
-            if worthy_clock.now < worthy_clock.lunch_start_time || worthy_clock.now >= worthy_clock.lunch_stop_time {
-                let x_coord = Circle::get_x_coord(&drawing_circle);
-                let y_coord = Circle::get_y_coord(&drawing_circle);
-                controller.mouse_move_to(x_coord, y_coord);
-                // controller.mouse_click(MouseButton::Left);
-
-                Circle::increase_angle(&drawing_circle);
-                sleep(Duration::from_millis(drawing_circle.wait_time));
+                        Circle::increase_angle(&drawing_circle);
+                        sleep(Duration::from_millis(drawing_circle.wait_time));
+                    }
+                }
+                set.now = time::now();
             }
         }
-        worthy_clock.now = Timestamp::now();
+        _ => {
+            panic!("FAILED TO START PROGRAM; FAILED TO DELIVER SOLUTION")
+        }
     }
+
 }
