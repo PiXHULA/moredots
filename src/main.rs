@@ -1,11 +1,11 @@
-use circle::Circle;
 use enigo::{Enigo, MouseControllable};
 use lazy_static::lazy_static;
 use rdev::{listen, Event, EventType, Key};
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::io::{self, Write};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::thread::{self, sleep};
 use std::time::Duration;
+use crate::circle::Circle;
 
 mod time;
 mod circle;

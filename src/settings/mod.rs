@@ -1,6 +1,7 @@
 use crate::{file, time};
 use chrono::NaiveTime;
 use std::io::Result;
+use crate::time::add;
 
 #[derive(Debug)]
 pub struct Settings {
@@ -29,18 +30,16 @@ impl Settings {
 
     fn create_settings_from_input() -> Result<String> {
         let mut timestamps = String::new();
-        if time::change("STOP", "16:45")? {
-            let test = &*time::add().unwrap_or_else(|_| String::from("16:45"));
-            timestamps.push_str(test);
-            timestamps.push(',');
+        if time::change("stop", "16:45") {
+            let result = add();
+            timestamps.push_str(&format!("{},",&result));
         } else {
-            timestamps.push_str("16:45");
-            timestamps.push(',');
+            timestamps.push_str("16:45,");
         }
-        if time::change("LUNCH", "11:00-12:00")? {
-            timestamps.push_str(&*time::add().unwrap_or_else(|_| String::from("11:00")));
-            timestamps.push(',');
-            timestamps.push_str(&*time::add().unwrap_or_else(|_| String::from("12:00")));
+        if time::change("lunch", "11:00-12:00") {
+            let lunch_start = add();
+            let lunch_stop = add();
+            timestamps.push_str(&format!("{},{}", lunch_start, lunch_stop));
         } else {
             timestamps.push_str("11:00,12:00");
         }
