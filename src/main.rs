@@ -80,10 +80,10 @@ fn main() {
                         let y_coord = Circle::get_y_coord(&drawing_circle);
                         controller.mouse_move_to(x_coord, y_coord);
                         // controller.mouse_click(MouseButton::Left);
-
                         Circle::increase_angle(&drawing_circle);
                         sleep(Duration::from_millis(drawing_circle.wait_time));
                     }
+                    //TODO: Ska vi låta den flyttas i lunchtid men mkt långsammare? (sleep(10min)?
                 }
                 set.now = time::now();
             }

@@ -1,4 +1,6 @@
 use crate::file;
+use std::fmt;
+use std::fmt::Debug;
 use std::io::{self, Write};
 use std::num::ParseIntError;
 use chrono::format::{DelayedFormat, StrftimeItems};
@@ -10,15 +12,20 @@ pub enum TimestampError {
     MaxValueError { message: String },
     WrongAnswerError { message: String },
 }
-//TODO: Hur blir det när en enum Error består av flera?
-// impl fmt::Display for TimestampError {
-//     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-//         write!(f, "{}:{:?}", self.message, self.source)
-//     }
-// }
+
+impl fmt::Display for TimestampError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            TimestampError::ParseError { message, source } => write!(f, "{}:{:?}", message, source),
+            TimestampError::MaxValueError { message } => write!(f, "{}", message),
+            TimestampError::WrongAnswerError { message } => write!(f, "{}", message)
+        }
+    }
+}
 
 pub fn from(string_stamp: &str) -> NaiveTime {
     let stamps: Vec<u32> = split_into_numbers(string_stamp);
+    //[12,34]
     match stamps[..] {
         [hour] => NaiveTime::from_hms_opt(hour, 0, 0)
             .unwrap_or_default(),
@@ -46,7 +53,7 @@ fn parse_number_to_int(value: &str) -> Result<u32, TimestampError> {
     value.parse::<u32>().map_err(|source| TimestampError::ParseError {
         message: format!("Value '{}' could not be parsed into a number with in 0-59 or 0-24. \
                           Please, what is wrong with you?", value),
-        source
+        source,
     })
 }
 
@@ -57,7 +64,7 @@ pub fn parse_number_to_string(value: &str) -> Result<String, TimestampError> {
             let num_hour = hour.parse::<u32>().map_err(|source| TimestampError::ParseError {
                 message: format!("Value '{}' could not be parsed into a number with in 0-59 or 0-24. \
                                   Please, what is wrong with you?", hour),
-                source
+                source,
             });
             match num_hour {
                 Ok(0u32..=9u32) => Ok(format!("0{}:00", num_hour?.to_string())),
@@ -77,7 +84,7 @@ pub fn parse_number_to_string(value: &str) -> Result<String, TimestampError> {
         [hour, min] => {
             let num_hour = hour.parse::<u32>().map_err(|source| TimestampError::ParseError {
                 message: format!("Value '{}' could not be parsed into hours. Please, what is wrong with you?", hour),
-                source
+                source,
             });
             let result_hour = match num_hour {
                 Ok(0u32..=9u32) => Ok(format!("0{}", num_hour?.to_string())),
@@ -89,7 +96,7 @@ pub fn parse_number_to_string(value: &str) -> Result<String, TimestampError> {
             };
             let num_min = min.parse::<u32>().map_err(|source| TimestampError::ParseError {
                 message: format!("Value '{}' could not be parsed into minutes. Please, what is wrong with you?", min),
-                source
+                source,
             });
             let result_minute = match num_min {
                 Ok(0u32..=9u32) => Ok(format!("{}:0{}", result_hour?.to_string(), num_min?.to_string())),
@@ -132,6 +139,15 @@ mod tests {
         assert!(parse_number_to_string("a:a").is_err());
         assert!(parse_number_to_string("10:a").is_err());
         assert!(parse_number_to_string("a:10").is_err());
+
+        assert_eq!(parse_number_to_string("12:79"),
+                   Err(TimestampError::MaxValueError {
+                       message: String::from("Value '79' is too high. Please, what is wrong with you?")
+                   }));
+        assert_eq!(parse_number_to_string("29:30"),
+                   Err(TimestampError::MaxValueError {
+                       message: String::from("Value '29' is too high. Please, what is wrong with you?")
+                   }))
     }
 }
 
